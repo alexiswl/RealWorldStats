@@ -10,7 +10,7 @@ output:
 ## Assumptions about the dataset
 
 ## Loading required packages
-```{r}
+```{r, message=FALSE}
 # Ensure all packages are loaded
 require(lubridate)
 require(dplyr)
@@ -25,8 +25,14 @@ require(SparkR)
 ## Importing the dataset
 We use readr from the tidyverse to import the dataset.
 The readr package can predict the type of data in each column
+```{r, message=FALSE}
+df = readr::read_csv("../data/stats.2017.csv")
+```
+
+## Glimpse the dataset.
+It's always important to check out what the data looks like before we start to play with it.
 ```{r}
-df = readr::read_csv("/Users/boronga/stats.2017.csv")
+df %>% glimpse()
 ```
 
 ## Basic additions to the data
@@ -38,8 +44,10 @@ df = df %>%
     dplyr::mutate(Winner_int = dplyr::case_when(Total_home > Total_away ~ 1,
                                                 Total_away > Total_home ~ -1,
                                                 Total_home == Total_away ~ 0),
-                  Winner_str = as.character(Winner_int),
-                  Margin = Total_home - Total_away) 
+                  Team_winner = dplyr::case_when(Total_home > Total_away ~ Team_home,
+                                                Total_away > Total_home ~ Team_away,
+                                                Total_home == Total_away ~ NA_character_),
+                  Margin = Total_home - Total_away)
 ```
 
 ## Question 1: Do free kicks influence games?
