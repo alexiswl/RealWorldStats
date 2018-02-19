@@ -1,0 +1,81 @@
+---
+title: "The Statistics of Australian Rules Football"
+output:
+  html_document: default
+  html_notebook: default
+---
+
+## Preface
+
+## Assumptions about the dataset
+
+## Loading required packages
+```{r}
+# Ensure all packages are loaded
+require(lubridate)
+require(dplyr)
+require(ggplot2)
+require(tibble)
+require(readr)
+require(magrittr)
+require(SparkR)
+```
+
+
+## Importing the dataset
+We use readr from the tidyverse to import the dataset.
+The readr package can predict the type of data in each column
+```{r}
+df = readr::read_csv("/Users/boronga/stats.2017.csv")
+```
+
+## Basic additions to the data
+This dataset doesn't actually contain the winner of each game.
+This is rather important for evaluating downstream statistics
+```{r}
+# Calculate the winner of each game and add to initial dataframe as a column
+df = df %>% 
+    dplyr::mutate(Winner_int = dplyr::case_when(Total_home > Total_away ~ 1,
+                                                Total_away > Total_home ~ -1,
+                                                Total_home == Total_away ~ 0),
+                  Winner_str = as.character(Winner_int),
+                  Margin = Total_home - Total_away) 
+```
+
+## Question 1: Do free kicks influence games?
+*Those lousy white maggots! I tell ya, every time, free kick Hawthorn*
+Most fans would say yes. Most fans would also say that it is their team that falls victim them most. Except for Hawthorn supports, who have consistently failed to speak out on the issue of bad umpire decisions. It's easy to hold the moral high-ground when you've just won three premiership. Hawthorn fans, however, might just have this one.
+
+#### Define a new dataset and add the columns
+* FreesFor_diff: 
+    + The difference in free kicks between the home and away team.
+    + An intermediate variable used to calculate the next two
+* Frees_diff:
+    + The difference in free kicks between the winning side and losing side.
+    + This will represent our x-axis
+* Margin_frees: 
+    + The margin in reference to the team that had the most free kicks.
+    + This will represent our y-axis
+```{r}
+# Correlate free kicks against the winner of a game and save as new dataset
+df.frees <- df %>% 
+                dplyr::mutate(FreesFor_diff = FreesFor_home - FreesFor_away) %>%
+                dplyr::filter(Margin != 0) %>% # Stop us multiplying/dividing by zero
+                dplyr::mutate(Frees_diff = FreesFor_diff*sign(Margin),
+                              Margin_frees = Margin*sign(FreesFor_diff))
+```
+
+#### Use a scatter plot to show the influence of free kicks on match margins
+```{r}
+df.frees %>% 
+    ggplot2::ggplot(aes(x=abs(FreesFor_diff), 
+                        y=Margin_frees)) +
+    ggplot2::geom_point() +
+    ggplot2::ylab("Score Margin (Team with most frees - Team with least frees)") +
+    ggplot2::xlab("Free kick difference") +
+    ggplot2::ggtitle("Does the difference in free kicks awarded to a team affect the margin?") +
+    ggplot2::geom_smooth(method="lm", se=TRUE) + 
+    ggplot2::geom_hline(yintercept=0, linetype="dashed", colour='red')
+    
+```
+
